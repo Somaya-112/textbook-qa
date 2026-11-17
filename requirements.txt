@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+python-multipart
+python-dotenv
+pymupdf          # PDF parsing (fast, keeps page numbers + table of contents)
+fastembed        # small local embedding model (ONNX, runs on CPU, no GPU needed)
+flashrank        # small local reranker
+qdrant-client    # vector DB (we use its local on-disk mode, no server needed)
+openai           # Groq and Gemini both speak the OpenAI API format

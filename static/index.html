@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Textbook helper</title>
+<link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap" rel="stylesheet">
+<style>
+  /* Design tokens: change the look here. Yellow "highlighter" = page citations only. */
+  :root{--ink:#1e2b4a;--paper:#f4f6fa;--card:#fff;--line:#d9dfeb;--muted:#5b6784;
+        --hl:#ffe066;--accent:#0e7c7b;--warn:#fff4e0;--radius:14px}
+  *{box-sizing:border-box}
+  html,body{height:100dvh;margin:0;overflow:hidden}   /* only chat + PDF scroll, never the page */
+  body{position:fixed;inset:0;font:17px/1.55 "Atkinson Hyperlegible",system-ui,sans-serif;
+       color:var(--ink);background:var(--paper);display:flex;flex-direction:column}
+  :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+  button,select,textarea{font:inherit;color:inherit}
+  header{display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:8px 16px;background:var(--card);
+         border-bottom:1px solid var(--line)}
+  .brand{display:flex;align-items:center;gap:10px;margin-right:auto}
+  #owl{font-size:2rem;line-height:1;display:inline-block;cursor:pointer;user-select:none}
+  #owl[data-mood=idle]{animation:float 3s ease-in-out infinite}
+  #owl[data-mood=think]{animation:wob .5s ease-in-out infinite}
+  #owl[data-mood=happy]{animation:hop .6s ease 2}
+  #owl[data-mood=oops]{animation:wob .4s ease 2}
+  @keyframes float{50%{transform:translateY(-4px)}}
+  @keyframes wob{25%{transform:rotate(-12deg)}75%{transform:rotate(12deg)}}
+  @keyframes hop{40%{transform:translateY(-12px) scale(1.2)}}
+  h1{font-size:1.1rem;margin:0;line-height:1.2}
+  .level{font-size:.8rem;color:var(--muted)}
+  .bar{height:6px;width:130px;background:var(--line);border-radius:9px;overflow:hidden;margin-top:3px}
+  .bar i{display:block;height:100%;width:0;background:var(--accent);transition:width .5s}
+  select{padding:8px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;max-width:230px}
+  .btn{padding:8px 14px;border-radius:8px;border:1px solid var(--ink);background:var(--ink);color:#fff;cursor:pointer;
+       transition:transform .1s}
+  .btn:active{transform:scale(.95)}
+  .btn.ghost{background:#fff;color:var(--ink)}
+  .btn:disabled{opacity:.5;cursor:wait}
+  .tabs{display:none;padding:8px 16px;gap:8px;background:var(--card);border-bottom:1px solid var(--line)}
+  .tabs button{flex:1}
+  main{flex:1;min-height:0;display:grid;grid-template-columns:1.15fr 1fr;grid-template-rows:minmax(0,1fr)}
+  #bookPane{position:relative;border-right:1px solid var(--line);min-height:0}
+  iframe{width:100%;height:100%;border:0;background:#e9edf4}
+  .empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;padding:24px;
+         color:var(--muted);background:var(--paper)}
+  .empty strong{display:block;color:var(--ink);font-size:1.2rem;margin-bottom:6px}
+  .empty[hidden]{display:none}
+  #chatPane{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+  #log{flex:1;min-height:0;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px}
+  .msg{max-width:92%;padding:10px 14px;border-radius:var(--radius);white-space:pre-wrap;overflow-wrap:anywhere;
+       animation:pop .25s ease}
+  @keyframes pop{from{transform:scale(.92) translateY(8px);opacity:0}}
+  .me{align-self:flex-end;background:var(--ink);color:#fff;border-bottom-right-radius:4px}
+  .bot{align-self:flex-start;background:var(--card);border:1px solid var(--line);border-bottom-left-radius:4px}
+  .bot.notfound{background:var(--warn);border-color:#f0d9a8}
+  .cite{background:var(--hl);border:0;border-radius:4px;padding:0 6px;font-weight:700;cursor:pointer}
+  .cite:hover{background:#ffd633;transform:translateY(-1px)}
+  .sources{margin-top:10px;display:flex;flex-direction:column;gap:6px;white-space:normal}
+  .sources small{color:var(--muted)}
+  .src{text-align:left;background:var(--paper);border:1px solid var(--line);border-radius:8px;padding:6px 10px;cursor:pointer}
+  .src:hover{border-color:var(--accent)}
+  .src b{background:var(--hl);padding:0 4px;border-radius:3px}
+  .src span{display:block;color:var(--muted);font-size:.85rem}
+  .acts{margin-top:8px;display:flex;gap:6px;white-space:normal}
+  .acts button{background:none;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:.85rem;cursor:pointer}
+  .acts button:hover{background:var(--paper)}
+  .starters{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+  .starters button{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;cursor:pointer}
+  .starters button:hover{border-color:var(--accent);transform:translateY(-1px)}
+  .dots span{display:inline-block;width:8px;height:8px;margin-right:4px;border-radius:50%;background:var(--muted);
+             animation:b 1s infinite}
+  .dots span:nth-child(2){animation-delay:.15s}.dots span:nth-child(3){animation-delay:.3s}
+  @keyframes b{50%{transform:translateY(-5px)}}
+  form{border-top:1px solid var(--line);background:var(--card);padding:10px 16px;display:flex;flex-direction:column;gap:8px}
+  .modes{display:flex;gap:6px;flex-wrap:wrap}
+  .modes label{cursor:pointer}
+  .modes input{position:absolute;opacity:0}
+  .modes span{display:inline-block;padding:4px 12px;border:1px solid var(--line);border-radius:999px;font-size:.92rem}
+  .modes input:checked+span{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .modes input:focus-visible+span{outline:3px solid var(--accent)}
+  .row{display:flex;gap:8px}
+  textarea{flex:1;resize:none;padding:10px;border:1px solid var(--line);border-radius:8px;height:46px}
+  #toast{position:fixed;left:50%;bottom:90px;transform:translate(-50%,20px);background:var(--ink);color:#fff;
+         padding:8px 16px;border-radius:999px;opacity:0;pointer-events:none;transition:.3s;z-index:9}
+  #toast.on{opacity:1;transform:translate(-50%,0)}
+  .bit{position:fixed;pointer-events:none;font-size:1.3rem;z-index:10}
+  @media (max-width:860px){
+    .tabs{display:flex} main{grid-template-columns:1fr}
+    main[data-view=book] #chatPane,main[data-view=chat] #bookPane{display:none}
+  }
+  @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <span id="owl" data-mood="idle" title="Hi, I'm Hoot! Click me." role="img" aria-label="Hoot the owl">🦉</span>
+    <div><h1>Textbook helper</h1>
+      <div class="level"><span id="lvl">Curious Cub</span> · <span id="cnt">0</span> questions
+        <div class="bar"><i id="xp"></i></div></div></div>
+  </div>
+  <label for="bookSel" style="position:absolute;left:-9999px">Choose a book</label>
+  <select id="bookSel"></select>
+  <button class="btn ghost" id="upBtn">Add a book</button>
+  <input type="file" id="file" accept="application/pdf" hidden>
+</header>
+<div class="tabs"><button class="btn ghost" data-t="book">Book</button><button class="btn" data-t="chat">Ask</button></div>
+<main data-view="chat" id="main">
+  <section id="bookPane" aria-label="Textbook">
+    <iframe id="pdf" title="Textbook pages"></iframe>
+    <div class="empty" id="bookEmpty"><div><strong>No book open yet</strong>Add a PDF textbook to start asking questions.</div></div>
+  </section>
+  <section id="chatPane" aria-label="Questions and answers">
+    <div id="log" aria-live="polite"></div>
+    <form id="form">
+      <div class="modes" role="radiogroup" aria-label="Answer style">
+        <label><input type="radio" name="mode" value="explain" checked><span>💡 Explain simply</span></label>
+        <label><input type="radio" name="mode" value="define"><span>📖 Exact definition</span></label>
+        <label><input type="radio" name="mode" value="quiz"><span>🎯 Quiz me</span></label>
+      </div>
+      <div class="row">
+        <textarea id="q" placeholder="Ask anything from this book (press / to jump here)" aria-label="Your question" maxlength="500"></textarea>
+        <button class="btn" id="send">Ask</button>
+      </div>
+    </form>
+  </section>
+</main>
+<div id="toast" role="status"></div>
+<script>
+const $ = s => document.querySelector(s);
+const calm = matchMedia("(prefers-reduced-motion:reduce)").matches;
+let bookId = null, history = [], asked = 0;
+try{ asked = +localStorage.getItem("asked") || 0; }catch{}
+
+/* ---- fun stuff: mascot mood, levels, toast, confetti ---- */
+const EMOJI = {idle:"🦉", think:"🤔", happy:"🥳", oops:"😅"};
+function mood(m, ms){
+  const o = $("#owl"); o.dataset.mood = m; o.textContent = EMOJI[m];
+  if(ms) setTimeout(() => mood("idle"), ms);
+}
+$("#owl").onclick = () => { mood("happy", 1500); toast("Hoot hoot! Ask me something 📚"); };
+const LEVELS = [[0,"Curious Cub"],[5,"Page Turner"],[15,"Bookworm"],[30,"Scholar"],[60,"Professor"]];
+function updateLevel(){
+  let i = LEVELS.findLastIndex(l => asked >= l[0]), next = LEVELS[i+1];
+  $("#lvl").textContent = LEVELS[i][1]; $("#cnt").textContent = asked;
+  $("#xp").style.width = (next ? (asked-LEVELS[i][0])/(next[0]-LEVELS[i][0])*100 : 100) + "%";
+}
+function toast(t){ const e = $("#toast"); e.textContent = t; e.classList.add("on");
+  clearTimeout(toast.t); toast.t = setTimeout(() => e.classList.remove("on"), 1800); }
+function confetti(){
+  if(calm) return;
+  const r = $("#owl").getBoundingClientRect();
+  for(let i = 0; i < 14; i++){
+    const b = document.createElement("span"); b.className = "bit";
+    b.textContent = ["⭐","✨","📘","🎉"][i % 4]; b.style.left = r.x+"px"; b.style.top = r.y+"px";
+    document.body.append(b);
+    b.animate([{transform:"translate(0,0) scale(1)",opacity:1},
+      {transform:`translate(${(Math.random()-.3)*320}px,${Math.random()*260}px) rotate(${Math.random()*360}deg) scale(.4)`,opacity:0}],
+      {duration:900+Math.random()*500,easing:"ease-out"}).onfinish = () => b.remove();
+  }
+}
+
+/* ---- helpers ---- */
+async function api(url, opts){
+  const r = await fetch(url, opts), j = await r.json().catch(() => ({}));
+  if(!r.ok) throw new Error(j.detail || "Something went wrong. Please try again.");
+  return j;
+}
+function show(v){ $("#main").dataset.view = v; }
+function bottom(){ const l = $("#log"); l.scrollTop = l.scrollHeight; }   // scroll ONLY the chat
+document.querySelectorAll(".tabs button").forEach(b => b.onclick = () => show(b.dataset.t));
+document.addEventListener("keydown", e => {
+  if(e.key === "/" && document.activeElement.tagName !== "TEXTAREA"){ e.preventDefault(); $("#q").focus(); }
+});
+
+function goTo(page){
+  $("#pdf").src = `/api/books/${bookId}/pdf#page=${page}`;
+  show("book"); toast(`📄 Jumped to page ${page}`);
+}
+/* "[p. 42]" in the answer -> clickable highlighter chip (DOM nodes, so no HTML injection) */
+function render(el, text){
+  const re = /\[p\.\s*(\d+)[^\]]*\]/g; let last = 0, m;
+  while((m = re.exec(text))){
+    el.append(text.slice(last, m.index));
+    const b = document.createElement("button");
+    b.className = "cite"; b.type = "button"; b.textContent = "p. " + m[1];
+    b.onclick = () => goTo(m[1]); el.append(b); last = re.lastIndex;
+  }
+  el.append(text.slice(last));
+}
+function bubble(cls, text){
+  const d = document.createElement("div"); d.className = "msg " + cls;
+  if(text) d.textContent = text; $("#log").append(d); bottom(); return d;
+}
+/* Typewriter effect (skipped if the student prefers reduced motion) */
+function typeOut(el, text, done){
+  const w = text.split(" "); let i = 0;
+  if(calm || w.length < 3) return done();
+  const t = setInterval(() => {
+    i += 3; el.textContent = w.slice(0, i).join(" "); bottom();
+    if(i >= w.length){ clearInterval(t); done(); }
+  }, 25);
+}
+
+/* ---- books ---- */
+const POOL = ["What are the main ideas here?","Define the key terms","Give me an example",
+  "Explain the method step by step","What problem does this solve?","Summarise the conclusion",
+  "What are the limitations?","Why does this matter?"];
+const pick = n => [...POOL].sort(() => Math.random() - .5).slice(0, n);
+async function loadBooks(select){
+  const books = await api("/api/books"), sel = $("#bookSel"); sel.innerHTML = "";
+  Object.entries(books).forEach(([id, b]) => sel.add(new Option(`${b.title} (${b.pages} pages)`, id)));
+  if(select && books[select]) sel.value = select;
+  if(sel.value) openBook(sel.value);
+}
+function openBook(id){
+  bookId = id; history = []; $("#log").innerHTML = "";
+  $("#bookEmpty").hidden = true; $("#pdf").src = `/api/books/${id}/pdf`;
+  const b = bubble("bot", "Hi, I'm Hoot! 🦉 Ask me anything from this book and I'll show you the page where I found it.");
+  const s = document.createElement("div"); s.className = "starters";
+  [...pick(3), "🎲 Surprise me"].forEach(t => {
+    const x = document.createElement("button"); x.type = "button"; x.textContent = t;
+    x.onclick = () => { $("#q").value = t.startsWith("🎲") ? pick(1)[0] : t; $("#form").requestSubmit(); };
+    s.append(x);
+  });
+  b.append(s);
+}
+$("#bookSel").onchange = e => openBook(e.target.value);
+$("#upBtn").onclick = () => $("#file").click();
+$("#file").onchange = async e => {
+  const f = e.target.files[0]; if(!f) return;
+  const btn = $("#upBtn"); btn.disabled = true; btn.textContent = "📚 Reading your book…"; mood("think");
+  try{
+    const fd = new FormData(); fd.append("file", f);
+    const r = await api("/api/books", {method:"POST", body:fd});
+    await loadBooks(r.book_id); mood("happy", 2500); confetti(); toast("Book ready! Ask away ✨");
+  }catch(err){ bubble("bot notfound", err.message); mood("oops", 2500); }
+  btn.disabled = false; btn.textContent = "Add a book"; e.target.value = "";
+};
+
+/* ---- asking ---- */
+$("#q").addEventListener("keydown", e => { if(e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("#form").requestSubmit(); }});
+$("#form").onsubmit = async e => {
+  e.preventDefault();
+  const q = $("#q").value.trim(); if(!q || !bookId) return;
+  $("#q").value = ""; $("#send").disabled = true; bubble("me", q); mood("think");
+  const wait = bubble("bot", ""); wait.innerHTML = '<span class="dots"><span></span><span></span><span></span></span>';
+  try{
+    const r = await api("/api/ask", {method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({book_id: bookId, question: q, history,
+                            mode: document.querySelector("input[name=mode]:checked").value})});
+    wait.textContent = "";
+    typeOut(wait, r.answer, () => {
+      wait.textContent = ""; render(wait, r.answer);
+      if(!r.found) wait.classList.add("notfound");
+      if(r.sources.length){
+        const box = document.createElement("div"); box.className = "sources";
+        box.innerHTML = `<small>${r.found ? "📍 Found in the book" : "Closest sections"}</small>`;
+        r.sources.forEach(s => {
+          const b = document.createElement("button"); b.type = "button"; b.className = "src";
+          b.innerHTML = "<b></b> <em></em><span></span>";
+          b.querySelector("b").textContent = "Page " + s.page;
+          b.querySelector("em").textContent = s.chapter;
+          b.querySelector("span").textContent = s.snippet + "…";
+          b.onclick = () => goTo(s.page); box.append(b);
+        }); wait.append(box);
+      }
+      const acts = document.createElement("div"); acts.className = "acts";   // listen + copy
+      const say = document.createElement("button"); say.textContent = "🔊 Listen";
+      say.onclick = () => { speechSynthesis.cancel();
+        if(say.dataset.on){ delete say.dataset.on; return; } say.dataset.on = 1;
+        speechSynthesis.speak(new SpeechSynthesisUtterance(r.answer.replace(/\[p\.[^\]]*\]/g, ""))); };
+      const cp = document.createElement("button"); cp.textContent = "📋 Copy";
+      cp.onclick = () => navigator.clipboard.writeText(r.answer).then(() => toast("Copied!"));
+      acts.append(say, cp); wait.append(acts); bottom();
+      asked++; try{ localStorage.setItem("asked", asked); }catch{}
+      const before = LEVELS.findLastIndex(l => asked-1 >= l[0]); updateLevel();
+      if(r.found){ mood("happy", 1800); confetti(); }
+      else mood("oops", 1800);
+      if(LEVELS.findLastIndex(l => asked >= l[0]) > before) toast("🏆 Level up: " + $("#lvl").textContent + "!");
+    });
+    history.push({role:"user", content:q}, {role:"assistant", content:r.answer});
+  }catch(err){ wait.textContent = err.message; wait.classList.add("notfound"); mood("oops", 2000); }
+  $("#send").disabled = false; bottom();
+};
+updateLevel(); loadBooks();
+</script>
+</body>
+</html>

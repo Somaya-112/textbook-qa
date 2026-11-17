@@ -1,3 +1,6 @@
+
+<img width="1918" height="873" alt="image" src="https://github.com/user-attachments/assets/0088dc20-06e2-43e5-8e0e-e31d35d52466" />
+<img width="1911" height="862" alt="image" src="https://github.com/user-attachments/assets/1f548721-0ec8-4297-859c-6a000908adc6" />
 # Textbook helper
 
 Ask questions about a PDF textbook and get answers **grounded in the book, with page citations**. If the book doesn't cover the question, it says so instead of guessing.
@@ -47,4 +50,6 @@ Open http://localhost:8000, click **Add a book**, and ask a question.
 - **Chunking follows the book's structure:** chunks never cross chapters and keep their page range, which is what makes accurate citations possible.
 - **Retrieval is always filtered by book:** answers can't leak between books.
 - **Retrieved text is treated as data, not instructions:** a basic defense against prompt injection.
+
+
 
